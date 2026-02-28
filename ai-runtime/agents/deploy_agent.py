@@ -2,15 +2,14 @@
 
 import os
 import re
+import logging
 import traceback
 from crewai import Agent, Task, Crew
 from tools.file_tools import make_tools
 from utils.rate_limiter import get_llm, run_with_retry, trim_summary
-from services.git_service import (
-    git_create_branch_and_commit,
-    git_push,
-    github_create_pr,
-)
+from services.git_service import git_create_branch_and_commit, git_push, github_create_pr
+
+logger = logging.getLogger("deploy_agent")
 
 
 def _slugify(text: str) -> str:
@@ -57,7 +56,7 @@ def run_deploy_agent(code_summary: str, test_summary: str, docs_summary: str,
     try:
         result = run_with_retry(_run)
     except Exception as e:
-        print(f"[DEPLOY AGENT ERROR] {traceback.format_exc()}")
+        logger.error(f"[DEPLOY AGENT ERROR] {traceback.format_exc()}")
         raise
 
     # ── Auto-create branch, commit, push, and open PR ──────────────
@@ -78,34 +77,54 @@ def run_deploy_agent(code_summary: str, test_summary: str, docs_summary: str,
     git_result = {"branch": branch_name, "pr_url": None, "steps": []}
 
     try:
+        # Step 1: Create branch + commit
+        logger.info(f"[DEPLOY] Creating branch {branch_name} in {repo_path}")
         commit_result = git_create_branch_and_commit(
             repo_path, branch_name, f"feat: {task_description[:72]}"
         )
+        logger.info(f"[DEPLOY] Commit result: {commit_result}")
         git_result["steps"].append(f"Branch created: {branch_name}")
         git_result["base_branch"] = commit_result.get("base_branch", "main")
 
-        push_result = git_push(repo_path, branch_name)
-        if push_result["success"]:
-            git_result["steps"].append("Pushed to origin")
+        if not commit_result.get("success"):
+            git_result["steps"].append(f"Commit failed: {commit_result.get('results', [])}")
+            logger.warning(f"[DEPLOY] Commit was not successful, skipping push/PR")
         else:
-            git_result["steps"].append(f"Push failed: {push_result['output'][:100]}")
+            # Step 2: Push to GitHub
+            logger.info(f"[DEPLOY] Pushing {branch_name} to origin")
+            base = commit_result.get("base_branch", "main")
+            push_result = git_push(repo_path, branch_name, base_branch=base)
+            logger.info(f"[DEPLOY] Push result: {push_result}")
 
-        pr_result = github_create_pr(
-            repo_path, branch_name,
-            commit_result.get("base_branch", "main"),
-            pr_title, pr_body or str(result),
-        )
-        if pr_result["success"]:
-            git_result["pr_url"] = pr_result["pr_url"]
-            git_result["pr_number"] = pr_result["pr_number"]
-            git_result["steps"].append(f"PR created: {pr_result['pr_url']}")
-        else:
-            git_result["steps"].append(f"PR creation failed: {pr_result.get('error', 'unknown')}")
+            if push_result["success"]:
+                git_result["steps"].append("Pushed to origin ✓")
+
+                # Step 3: Create PR on GitHub
+                logger.info(f"[DEPLOY] Creating PR: {pr_title}")
+                pr_result = github_create_pr(
+                    repo_path, branch_name,
+                    commit_result.get("base_branch", "main"),
+                    pr_title, pr_body or str(result),
+                )
+                logger.info(f"[DEPLOY] PR result: {pr_result}")
+
+                if pr_result["success"]:
+                    git_result["pr_url"] = pr_result["pr_url"]
+                    git_result["pr_number"] = pr_result["pr_number"]
+                    git_result["steps"].append(f"PR created: {pr_result['pr_url']}")
+                else:
+                    git_result["steps"].append(f"PR creation failed: {pr_result.get('error', 'unknown')}")
+            else:
+                git_result["steps"].append(f"Push failed: {push_result['output'][:200]}")
 
     except Exception as e:
         git_result["steps"].append(f"Git error: {str(e)[:200]}")
-        print(f"[DEPLOY GIT ERROR] {traceback.format_exc()}")
+        logger.error(f"[DEPLOY GIT ERROR] {traceback.format_exc()}")
 
+    # Log final result
+    logger.info(f"[DEPLOY] Final git_result: {git_result}")
+
+    # Collect deploy-related files
     files = []
     deploy_patterns = ('PR_DESCRIPTION', 'CHANGELOG', 'ci.yml', '.gitlab-ci', 'deploy', 'Dockerfile')
     for root, dirs, filenames in os.walk(repo_path):
