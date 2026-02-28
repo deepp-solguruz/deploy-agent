@@ -94,7 +94,7 @@ def git_create_branch_and_commit(repo_path: str, branch_name: str, commit_messag
 
 def git_push(repo_path: str, branch_name: str) -> dict:
     """Push the branch to origin using GITHUB_TOKEN for auth."""
-    github_token = os.getenv("GITHUB_TOKEN", "")
+    github_token = os.getenv("GITHUB_TOKEN", "").strip()
     remote = _get_remote_info(repo_path)
 
     logger.info(f"git_push: branch={branch_name}, remote={remote}, token_len={len(github_token)}")
@@ -118,7 +118,7 @@ def git_push(repo_path: str, branch_name: str) -> dict:
 def github_create_pr(repo_path: str, branch_name: str, base_branch: str,
                      title: str, body: str) -> dict:
     """Create a GitHub PR via the REST API."""
-    github_token = os.getenv("GITHUB_TOKEN", "")
+    github_token = os.getenv("GITHUB_TOKEN", "").strip()
     if not github_token:
         return {"success": False, "error": "GITHUB_TOKEN not set in .env"}
 
