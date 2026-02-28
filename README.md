@@ -847,6 +847,711 @@ docker run -p 3000:3000 deploy-agent
 5. Run the test suite
 6. Submit a pull request
 
+### Inventory Management Endpoints
+
+#### GET /api/inventory
+Get all inventory items with filtering and pagination.
+
+**Query Parameters:**
+- `category` (optional): Filter by category (general, electronics, clothing, food, books, tools, medical, automotive)
+- `status` (optional): Filter by status (active, inactive, discontinued)
+- `isActive` (optional): Filter by active status (true/false)
+- `lowStock` (optional): Show only low stock items (true)
+- `outOfStock` (optional): Show only out of stock items (true)
+- `search` (optional): Search in name, description, or SKU
+- `page` (optional): Page number for pagination (default: 1)
+- `limit` (optional): Items per page (default: 10, max: 100)
+
+**Example:**
+```bash
+curl -X GET "http://localhost:3000/api/inventory?category=electronics&page=1&limit=10" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Inventory items retrieved successfully",
+  "data": [
+    {
+      "id": "1701234567890",
+      "name": "Wireless Headphones",
+      "description": "Bluetooth wireless headphones with noise cancellation",
+      "sku": "WH-001",
+      "category": "electronics",
+      "quantity": 25,
+      "minQuantity": 5,
+      "maxQuantity": 100,
+      "unitPrice": 99.99,
+      "totalValue": 2499.75,
+      "supplier": "TechCorp",
+      "location": "Warehouse A",
+      "status": "active",
+      "isActive": true,
+      "createdAt": "2023-12-07T10:30:00.000Z",
+      "updatedAt": "2023-12-07T11:00:00.000Z",
+      "lastRestockedAt": "2023-12-07T11:00:00.000Z",
+      "expiryDate": null,
+      "batchNumber": "BATCH-001",
+      "isLowStock": false,
+      "isOutOfStock": false
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+#### GET /api/inventory/summary
+Get inventory summary with key metrics.
+
+**Example:**
+```bash
+curl -X GET http://localhost:3000/api/inventory/summary \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Inventory summary retrieved successfully",
+  "data": {
+    "totalItems": 150,
+    "totalValue": 45000.50,
+    "activeItems": 140,
+    "inactiveItems": 10,
+    "lowStockItems": 8,
+    "outOfStockItems": 3,
+    "categories": {
+      "electronics": 45,
+      "clothing": 30,
+      "books": 25,
+      "general": 50
+    },
+    "averageValue": 300.00
+  }
+}
+```
+
+#### GET /api/inventory/low-stock
+Get items with low stock (quantity <= minQuantity).
+
+**Example:**
+```bash
+curl -X GET http://localhost:3000/api/inventory/low-stock \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Low stock items retrieved successfully",
+  "data": [
+    {
+      "id": "1701234567891",
+      "name": "USB Cable",
+      "sku": "USB-001",
+      "quantity": 3,
+      "minQuantity": 10,
+      "isLowStock": true
+    }
+  ],
+  "count": 1
+}
+```
+
+#### GET /api/inventory/out-of-stock
+Get items that are out of stock (quantity = 0).
+
+**Example:**
+```bash
+curl -X GET http://localhost:3000/api/inventory/out-of-stock \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Out of stock items retrieved successfully",
+  "data": [
+    {
+      "id": "1701234567892",
+      "name": "Phone Case",
+      "sku": "PC-001",
+      "quantity": 0,
+      "minQuantity": 5,
+      "isOutOfStock": true
+    }
+  ],
+  "count": 1
+}
+```
+
+#### GET /api/inventory/search/:query
+Search inventory items by name, description, or SKU.
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 10)
+
+**Example:**
+```bash
+curl -X GET "http://localhost:3000/api/inventory/search/headphones?page=1&limit=5" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Search completed successfully",
+  "data": [
+    {
+      "id": "1701234567890",
+      "name": "Wireless Headphones",
+      "sku": "WH-001",
+      "quantity": 25
+    }
+  ],
+  "query": "headphones",
+  "pagination": {
+    "page": 1,
+    "limit": 5,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+#### GET /api/inventory/:id
+Get inventory item by ID.
+
+**Example:**
+```bash
+curl -X GET http://localhost:3000/api/inventory/1701234567890 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Inventory item retrieved successfully",
+  "data": {
+    "id": "1701234567890",
+    "name": "Wireless Headphones",
+    "description": "Bluetooth wireless headphones with noise cancellation",
+    "sku": "WH-001",
+    "category": "electronics",
+    "quantity": 25,
+    "minQuantity": 5,
+    "maxQuantity": 100,
+    "unitPrice": 99.99,
+    "totalValue": 2499.75,
+    "supplier": "TechCorp",
+    "location": "Warehouse A",
+    "status": "active",
+    "isActive": true,
+    "createdAt": "2023-12-07T10:30:00.000Z",
+    "updatedAt": "2023-12-07T11:00:00.000Z",
+    "lastRestockedAt": "2023-12-07T11:00:00.000Z",
+    "expiryDate": null,
+    "batchNumber": "BATCH-001",
+    "isLowStock": false,
+    "isOutOfStock": false
+  }
+}
+```
+
+#### GET /api/inventory/sku/:sku
+Get inventory item by SKU.
+
+**Example:**
+```bash
+curl -X GET http://localhost:3000/api/inventory/sku/WH-001 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Inventory item retrieved successfully",
+  "data": {
+    "id": "1701234567890",
+    "name": "Wireless Headphones",
+    "sku": "WH-001",
+    "quantity": 25
+  }
+}
+```
+
+#### POST /api/inventory
+Create new inventory item.
+
+**Request Body:**
+```json
+{
+  "name": "Wireless Mouse",
+  "description": "Ergonomic wireless mouse with USB receiver",
+  "sku": "WM-001",
+  "category": "electronics",
+  "quantity": 50,
+  "minQuantity": 10,
+  "maxQuantity": 200,
+  "unitPrice": 29.99,
+  "supplier": "TechCorp",
+  "location": "Warehouse B",
+  "expiryDate": null,
+  "batchNumber": "BATCH-002"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/api/inventory \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Wireless Mouse",
+    "description": "Ergonomic wireless mouse with USB receiver",
+    "sku": "WM-001",
+    "category": "electronics",
+    "quantity": 50,
+    "minQuantity": 10,
+    "maxQuantity": 200,
+    "unitPrice": 29.99,
+    "supplier": "TechCorp",
+    "location": "Warehouse B"
+  }'
+```
+
+**Response (201):**
+```json
+{
+  "message": "Inventory item created successfully",
+  "data": {
+    "id": "1701234567893",
+    "name": "Wireless Mouse",
+    "description": "Ergonomic wireless mouse with USB receiver",
+    "sku": "WM-001",
+    "category": "electronics",
+    "quantity": 50,
+    "minQuantity": 10,
+    "maxQuantity": 200,
+    "unitPrice": 29.99,
+    "totalValue": 1499.50,
+    "supplier": "TechCorp",
+    "location": "Warehouse B",
+    "status": "active",
+    "isActive": true,
+    "createdAt": "2023-12-07T12:00:00.000Z",
+    "updatedAt": null,
+    "lastRestockedAt": null,
+    "expiryDate": null,
+    "batchNumber": null,
+    "isLowStock": false,
+    "isOutOfStock": false
+  }
+}
+```
+
+#### PUT /api/inventory/:id
+Update inventory item.
+
+**Request Body:**
+```json
+{
+  "name": "Updated Wireless Mouse",
+  "description": "Updated description",
+  "category": "electronics",
+  "quantity": 75,
+  "minQuantity": 15,
+  "unitPrice": 34.99,
+  "supplier": "NewSupplier",
+  "location": "Warehouse C"
+}
+```
+
+**Example:**
+```bash
+curl -X PUT http://localhost:3000/api/inventory/1701234567893 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Wireless Mouse",
+    "unitPrice": 34.99,
+    "quantity": 75
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "message": "Inventory item updated successfully",
+  "data": {
+    "id": "1701234567893",
+    "name": "Updated Wireless Mouse",
+    "sku": "WM-001",
+    "quantity": 75,
+    "unitPrice": 34.99,
+    "totalValue": 2624.25,
+    "updatedAt": "2023-12-07T12:30:00.000Z"
+  }
+}
+```
+
+#### PATCH /api/inventory/:id/quantity
+Update item quantity directly.
+
+**Request Body:**
+```json
+{
+  "quantity": 100
+}
+```
+
+**Example:**
+```bash
+curl -X PATCH http://localhost:3000/api/inventory/1701234567893/quantity \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{"quantity": 100}'
+```
+
+**Response (200):**
+```json
+{
+  "message": "Item quantity updated successfully",
+  "data": {
+    "id": "1701234567893",
+    "name": "Updated Wireless Mouse",
+    "quantity": 100,
+    "totalValue": 3499.00,
+    "updatedAt": "2023-12-07T13:00:00.000Z"
+  }
+}
+```
+
+#### PATCH /api/inventory/:id/add-stock
+Add stock to existing quantity.
+
+**Request Body:**
+```json
+{
+  "amount": 25
+}
+```
+
+**Example:**
+```bash
+curl -X PATCH http://localhost:3000/api/inventory/1701234567893/add-stock \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 25}'
+```
+
+**Response (200):**
+```json
+{
+  "message": "Stock added successfully",
+  "data": {
+    "id": "1701234567893",
+    "name": "Updated Wireless Mouse",
+    "quantity": 125,
+    "totalValue": 4373.75,
+    "lastRestockedAt": "2023-12-07T13:15:00.000Z",
+    "updatedAt": "2023-12-07T13:15:00.000Z"
+  }
+}
+```
+
+#### PATCH /api/inventory/:id/remove-stock
+Remove stock from existing quantity.
+
+**Request Body:**
+```json
+{
+  "amount": 10
+}
+```
+
+**Example:**
+```bash
+curl -X PATCH http://localhost:3000/api/inventory/1701234567893/remove-stock \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 10}'
+```
+
+**Response (200):**
+```json
+{
+  "message": "Stock removed successfully",
+  "data": {
+    "id": "1701234567893",
+    "name": "Updated Wireless Mouse",
+    "quantity": 115,
+    "totalValue": 4023.85,
+    "updatedAt": "2023-12-07T13:30:00.000Z"
+  }
+}
+```
+
+#### DELETE /api/inventory/:id
+Soft delete inventory item (deactivate).
+
+**Example:**
+```bash
+curl -X DELETE http://localhost:3000/api/inventory/1701234567893 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Inventory item deleted successfully",
+  "data": {
+    "id": "1701234567893",
+    "name": "Updated Wireless Mouse",
+    "isActive": false,
+    "status": "inactive",
+    "deletedAt": "2023-12-07T14:00:00.000Z",
+    "updatedAt": "2023-12-07T14:00:00.000Z"
+  }
+}
+```
+
+#### PATCH /api/inventory/:id/restore
+Restore soft-deleted inventory item.
+
+**Example:**
+```bash
+curl -X PATCH http://localhost:3000/api/inventory/1701234567893/restore \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Inventory item restored successfully",
+  "data": {
+    "id": "1701234567893",
+    "name": "Updated Wireless Mouse",
+    "isActive": true,
+    "status": "active",
+    "deletedAt": null,
+    "updatedAt": "2023-12-07T14:15:00.000Z"
+  }
+}
+```
+
+## Inventory Management Flow
+
+### 1. Item Creation & Setup
+```bash
+# Create new inventory item
+curl -X POST http://localhost:3000/api/inventory \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Product Name",
+    "sku": "PROD-001",
+    "category": "electronics",
+    "quantity": 100,
+    "minQuantity": 10,
+    "unitPrice": 49.99,
+    "supplier": "Supplier Name"
+  }'
+
+# Get item details
+curl -X GET http://localhost:3000/api/inventory/ITEM_ID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Get item by SKU
+curl -X GET http://localhost:3000/api/inventory/sku/PROD-001 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+```
+
+### 2. Inventory Monitoring
+```bash
+# Get inventory summary
+curl -X GET http://localhost:3000/api/inventory/summary \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Check low stock items
+curl -X GET http://localhost:3000/api/inventory/low-stock \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Check out of stock items
+curl -X GET http://localhost:3000/api/inventory/out-of-stock \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Search inventory
+curl -X GET "http://localhost:3000/api/inventory/search/product?limit=20" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+```
+
+### 3. Stock Management
+```bash
+# Add stock (restock)
+curl -X PATCH http://localhost:3000/api/inventory/ITEM_ID/add-stock \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 50}'
+
+# Remove stock (sale/usage)
+curl -X PATCH http://localhost:3000/api/inventory/ITEM_ID/remove-stock \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 5}'
+
+# Set exact quantity
+curl -X PATCH http://localhost:3000/api/inventory/ITEM_ID/quantity \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"quantity": 75}'
+```
+
+### 4. Item Management
+```bash
+# Update item details
+curl -X PUT http://localhost:3000/api/inventory/ITEM_ID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Product Name",
+    "unitPrice": 54.99,
+    "supplier": "New Supplier"
+  }'
+
+# Deactivate item (soft delete)
+curl -X DELETE http://localhost:3000/api/inventory/ITEM_ID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Restore deactivated item
+curl -X PATCH http://localhost:3000/api/inventory/ITEM_ID/restore \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+```
+
+### 5. Filtering & Reporting
+```bash
+# Filter by category
+curl -X GET "http://localhost:3000/api/inventory?category=electronics&page=1&limit=20" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Filter by status
+curl -X GET "http://localhost:3000/api/inventory?status=active&isActive=true" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Show only low stock items
+curl -X GET "http://localhost:3000/api/inventory?lowStock=true" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Search with filters
+curl -X GET "http://localhost:3000/api/inventory?search=wireless&category=electronics" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+```
+
+## Inventory Data Schema
+
+### InventoryItem Object
+```json
+{
+  "id": "string",                    // Unique item identifier (timestamp-based)
+  "name": "string",                  // Item name (2-100 chars, required)
+  "description": "string",           // Item description (optional)
+  "sku": "string",                   // Stock Keeping Unit (2-50 chars, unique, required)
+  "category": "string",              // Category (general, electronics, clothing, food, books, tools, medical, automotive)
+  "quantity": "number",              // Current stock quantity (non-negative)
+  "minQuantity": "number",           // Minimum stock threshold (non-negative)
+  "maxQuantity": "number",           // Maximum stock limit (optional, non-negative)
+  "unitPrice": "number",             // Price per unit (non-negative)
+  "totalValue": "number",            // Calculated: quantity * unitPrice
+  "supplier": "string",              // Supplier name (optional)
+  "location": "string",              // Storage location (optional)
+  "status": "string",                // Item status (active, inactive, discontinued)
+  "isActive": "boolean",             // Active status flag
+  "createdAt": "string",             // ISO timestamp of creation
+  "updatedAt": "string",             // ISO timestamp of last update (optional)
+  "deletedAt": "string",             // ISO timestamp of soft deletion (optional)
+  "createdBy": "string",             // User ID who created the item
+  "updatedBy": "string",             // User ID who last updated the item
+  "lastRestockedAt": "string",       // ISO timestamp of last restock (optional)
+  "expiryDate": "string",            // Item expiry date (optional)
+  "batchNumber": "string",           // Batch/lot number (optional)
+  "isLowStock": "boolean",           // Calculated: quantity <= minQuantity && quantity > 0
+  "isOutOfStock": "boolean"          // Calculated: quantity === 0
+}
+```
+
+### Inventory Summary Object
+```json
+{
+  "totalItems": "number",            // Total number of items
+  "totalValue": "number",            // Total inventory value
+  "activeItems": "number",           // Number of active items
+  "inactiveItems": "number",         // Number of inactive items
+  "lowStockItems": "number",         // Number of low stock items
+  "outOfStockItems": "number",       // Number of out of stock items
+  "categories": {                    // Items count by category
+    "electronics": "number",
+    "clothing": "number",
+    "books": "number",
+    "general": "number"
+  },
+  "averageValue": "number"           // Average item value
+}
+```
+
+### Pagination Object
+```json
+{
+  "page": "number",                  // Current page number
+  "limit": "number",                 // Items per page
+  "total": "number",                 // Total number of items
+  "totalPages": "number"             // Total number of pages
+}
+```
+
+### Validation Rules
+
+#### Item Creation
+- **name**: Required, 2-100 characters
+- **sku**: Required, 2-50 characters, alphanumeric + underscore/hyphen, unique
+- **category**: Optional, must be valid category
+- **quantity**: Optional, non-negative number, default 0
+- **minQuantity**: Optional, non-negative number, default 0
+- **maxQuantity**: Optional, non-negative number, must be > minQuantity
+- **unitPrice**: Optional, non-negative number, default 0
+- **status**: Optional, must be valid status, default 'active'
+- **isActive**: Optional, boolean, default true
+
+#### Item Update
+- **name**: Optional, 2-100 characters
+- **sku**: Cannot be changed after creation
+- **category**: Optional, must be valid category
+- **quantity**: Optional, non-negative number
+- **minQuantity**: Optional, non-negative number
+- **maxQuantity**: Optional, non-negative number, must be > minQuantity
+- **unitPrice**: Optional, non-negative number
+- **status**: Optional, must be valid status
+- **isActive**: Optional, boolean
+
+#### Stock Operations
+- **quantity**: Must be non-negative number
+- **amount**: Must be positive number for add/remove operations
+- Remove stock cannot exceed current quantity
+
+#### Search & Filtering
+- **query**: Minimum 2 characters for search
+- **page**: Positive integer, default 1
+- **limit**: 1-100, default 10
+- **category**: Must be valid category
+- **status**: Must be valid status
+- **isActive**: Must be boolean
+
 ## License
 
 MIT License - see LICENSE file for details.

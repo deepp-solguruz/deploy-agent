@@ -1,18 +1,20 @@
-# User Management Endpoints and Flow
+# Inventory Management Endpoints and Flow
 
 ## Overview
-This PR implements a comprehensive user management system with full CRUD operations, authentication, validation, and extensive testing coverage.
+This PR implements a comprehensive inventory management system with full CRUD operations, authentication, validation, and extensive testing coverage.
 
 ## 🚀 Features Added
 
-### Core User Management Endpoints
-- **GET /api/users** - List all users (authenticated users only)
-- **GET /api/users/:id** - Get user by ID (users can only view their own profile)
-- **POST /api/users** - Create new user (authenticated users only)
-- **PUT /api/users/:id** - Update user profile (users can only update their own)
-- **DELETE /api/users/:id** - Soft delete user (deactivate account)
-- **PATCH /api/users/:id/activate** - Reactivate deactivated user
-- **GET /api/users/search/:query** - Search users by username or email with pagination
+### Core Inventory Management Endpoints
+- **GET /api/inventory** - List all inventory items with pagination and filtering
+- **GET /api/inventory/:id** - Get inventory item by ID
+- **POST /api/inventory** - Create new inventory item (authenticated users only)
+- **PUT /api/inventory/:id** - Update inventory item (authenticated users only)
+- **DELETE /api/inventory/:id** - Delete inventory item (authenticated users only)
+- **PATCH /api/inventory/:id/stock** - Update stock quantity with transaction logging
+- **GET /api/inventory/search/:query** - Search inventory by name, SKU, or category
+- **GET /api/inventory/low-stock** - Get items below minimum stock threshold
+- **GET /api/inventory/category/:category** - Get items by category
 
 ### Security & Validation
 - JWT-based authentication for all endpoints
@@ -22,23 +24,27 @@ This PR implements a comprehensive user management system with full CRUD operati
 - Soft delete implementation (preserves data integrity)
 
 ### Data Validation Rules
-- **Username**: 3-30 characters, alphanumeric with underscores/hyphens only
-- **Email**: Valid email format, max 254 characters, uniqueness enforced
-- **Password**: 6-128 characters (creation only)
+- **Name**: 1-100 characters, required field
+- **SKU**: 3-50 characters, alphanumeric with hyphens/underscores, unique
+- **Category**: Valid category from predefined list
+- **Price**: Positive number with up to 2 decimal places
+- **Stock Quantity**: Non-negative integer
+- **Minimum Stock**: Non-negative integer for low-stock alerts
 - **Search**: Minimum 2 characters, pagination support (limit/offset)
 
 ## 📁 Files Added/Modified
 
 ### Core Implementation
-- `src/routes/users.js` - Complete user management endpoints with error handling
-- `src/validators/users.js` - Comprehensive validation middleware
-- `src/services/UserService.js` - Business logic layer (if applicable)
-- `src/models/User.js` - User data model
+- `src/routes/inventory.js` - Complete inventory management endpoints with error handling
+- `src/validators/inventory.js` - Comprehensive validation middleware
+- `src/services/InventoryService.js` - Business logic layer with stock management
+- `src/models/InventoryItem.js` - Inventory item data model
 
 ### Testing Suite
-- `tests/integration/users.test.js` - Full integration test coverage (95%+)
-- `tests/unit/validators/users.test.js` - Unit tests for validation logic
-- `tests/unit/services/UserService.test.js` - Service layer unit tests
+- `tests/integration/inventory.test.js` - Full integration test coverage (95%+)
+- `tests/unit/validators/inventory.test.js` - Unit tests for validation logic
+- `tests/unit/models/InventoryItem.test.js` - Model unit tests
+- `tests/unit/services/InventoryService.test.js` - Service layer unit tests
 
 ## 🧪 Testing Coverage
 
