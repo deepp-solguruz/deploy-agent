@@ -79,9 +79,29 @@ def git_create_branch_and_commit(repo_path: str, branch_name: str, commit_messag
 
 
 def git_push(repo_path: str, branch_name: str) -> dict:
-    """Push the branch to origin."""
-    code, out = _run_git(repo_path, "push", "-u", "origin", branch_name)
-    return {"success": code == 0, "output": out[:300]}
+    """Push the branch to origin using token auth if available."""
+    remote = _get_remote_info(repo_path)
+    if not remote:
+        return {"success": False, "output": "No valid GitHub remote 'origin' found."}
+    
+    owner, repo = remote
+
+    # Try pushing with token in URL to bypass interactive prompt
+    if GITHUB_TOKEN:
+        auth_url = f"https://x-access-token:{GITHUB_TOKEN}@github.com/{owner}/{repo}.git"
+        # Temporarily change remote
+        _run_git(repo_path, "remote", "set-url", "origin", auth_url)
+        
+        code, out = _run_git(repo_path, "push", "-u", "origin", branch_name)
+        
+        # Restore remote to safe version
+        safe_url = f"https://github.com/{owner}/{repo}.git"
+        _run_git(repo_path, "remote", "set-url", "origin", safe_url)
+    else:
+        # Fallback to normal push (might hang if it needs creds)
+        code, out = _run_git(repo_path, "push", "-u", "origin", branch_name)
+
+    return {"success": code == 0, "output": out[:500]}
 
 
 def github_create_pr(repo_path: str, branch_name: str, base_branch: str,

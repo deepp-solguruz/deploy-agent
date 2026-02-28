@@ -22,7 +22,7 @@ def run_code_agent(task_description: str, task_id: str, repo_path: str) -> dict:
         tools=[scan_repo, read_file, write_file, patch_file],
         llm=get_llm(0.1),
         verbose=True,
-        max_iter=8,
+        # max_iter=8,
     )
 
     task = Task(
