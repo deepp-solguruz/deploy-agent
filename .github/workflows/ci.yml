@@ -8,6 +8,8 @@ on:
 
 env:
   NODE_VERSION: '18.x'
+  JWT_SECRET: 'test-jwt-secret-for-ci-pipeline'
+  JWT_EXPIRES_IN: '1h'
 
 jobs:
   test:
@@ -36,11 +38,23 @@ jobs:
         # Add linting when eslint is configured
         echo "Linting step - add eslint configuration"
         
-    - name: Run tests
-      run: npm test
+    - name: Run unit tests
+      env:
+        JWT_SECRET: ${{ env.JWT_SECRET }}
+        JWT_EXPIRES_IN: ${{ env.JWT_EXPIRES_IN }}
+      run: npm test -- --testPathPattern="tests/unit"
+      
+    - name: Run integration tests
+      env:
+        JWT_SECRET: ${{ env.JWT_SECRET }}
+        JWT_EXPIRES_IN: ${{ env.JWT_EXPIRES_IN }}
+      run: npm test -- --testPathPattern="tests/integration"
       
     - name: Generate test coverage
-      run: npm run test -- --coverage --watchAll=false
+      env:
+        JWT_SECRET: ${{ env.JWT_SECRET }}
+        JWT_EXPIRES_IN: ${{ env.JWT_EXPIRES_IN }}
+      run: npm test -- --coverage --watchAll=false
       
     - name: Upload coverage to Codecov
       if: matrix.node-version == '18.x'
@@ -49,6 +63,35 @@ jobs:
         file: ./coverage/lcov.info
         flags: unittests
         name: codecov-umbrella
+        
+  auth-tests:
+    name: Authentication Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run auth middleware tests
+      env:
+        JWT_SECRET: ${{ env.JWT_SECRET }}
+        JWT_EXPIRES_IN: ${{ env.JWT_EXPIRES_IN }}
+      run: npm test -- --testPathPattern="auth.test.js"
+      
+    - name: Test JWT token operations
+      env:
+        JWT_SECRET: ${{ env.JWT_SECRET }}
+        JWT_EXPIRES_IN: ${{ env.JWT_EXPIRES_IN }}
+      run: npm test -- --testPathPattern="middleware/auth.test.js"
         
   security:
     name: Security Audit
@@ -70,6 +113,11 @@ jobs:
     - name: Run security audit
       run: npm audit --audit-level=high
       
+    - name: Check for vulnerable dependencies
+      run: |
+        # Check bcrypt and jsonwebtoken specifically
+        npm ls bcrypt jsonwebtoken
+        
     - name: Run dependency check
       run: |
         npx audit-ci --config .audit-ci.json || echo "Audit completed with warnings"
@@ -77,7 +125,7 @@ jobs:
   build:
     name: Build Application
     runs-on: ubuntu-latest
-    needs: [test, security]
+    needs: [test, auth-tests, security]
     
     steps:
     - name: Checkout code
@@ -100,6 +148,9 @@ jobs:
         cp package-lock.json dist/
         
     - name: Test production build
+      env:
+        JWT_SECRET: ${{ env.JWT_SECRET }}
+        JWT_EXPIRES_IN: ${{ env.JWT_EXPIRES_IN }}
       run: |
         cd dist
         npm ci --only=production
@@ -131,6 +182,9 @@ jobs:
       run: npm ci
       
     - name: Start server in background
+      env:
+        JWT_SECRET: ${{ env.JWT_SECRET }}
+        JWT_EXPIRES_IN: ${{ env.JWT_EXPIRES_IN }}
       run: |
         npm start &
         SERVER_PID=$!
@@ -164,10 +218,76 @@ jobs:
           kill $SERVER_PID || true
         fi
 
+  auth-integration:
+    name: Auth Integration Tests
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Start server in background
+      env:
+        JWT_SECRET: ${{ env.JWT_SECRET }}
+        JWT_EXPIRES_IN: ${{ env.JWT_EXPIRES_IN }}
+      run: |
+        npm start &
+        SERVER_PID=$!
+        echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+        
+    - name: Wait for server to start
+      run: |
+        timeout 30s bash -c 'until curl -f http://localhost:3000/api/health; do sleep 1; done'
+        
+    - name: Test auth endpoints
+      run: |
+        # Test user registration
+        REGISTER_RESPONSE=$(curl -s -X POST http://localhost:3000/api/auth/register \
+          -H "Content-Type: application/json" \
+          -d '{"username":"testuser","email":"test@example.com","password":"testpass123"}')
+        echo "Register response: $REGISTER_RESPONSE"
+        
+        # Extract token from registration response
+        TOKEN=$(echo $REGISTER_RESPONSE | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+        echo "Extracted token: $TOKEN"
+        
+        # Test login
+        LOGIN_RESPONSE=$(curl -s -X POST http://localhost:3000/api/auth/login \
+          -H "Content-Type: application/json" \
+          -d '{"username":"testuser","password":"testpass123"}')
+        echo "Login response: $LOGIN_RESPONSE"
+        
+        # Test protected profile endpoint
+        PROFILE_RESPONSE=$(curl -s -X GET http://localhost:3000/api/auth/profile \
+          -H "Authorization: Bearer $TOKEN")
+        echo "Profile response: $PROFILE_RESPONSE"
+        
+        # Test token refresh
+        REFRESH_RESPONSE=$(curl -s -X POST http://localhost:3000/api/auth/refresh \
+          -H "Authorization: Bearer $TOKEN")
+        echo "Refresh response: $REFRESH_RESPONSE"
+        
+    - name: Stop server
+      if: always()
+      run: |
+        if [ ! -z "$SERVER_PID" ]; then
+          kill $SERVER_PID || true
+        fi
+
   docker:
     name: Docker Build & Test
     runs-on: ubuntu-latest
-    needs: [test, security]
+    needs: [test, auth-tests, security]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     
     steps:
@@ -219,14 +339,22 @@ jobs:
         
     - name: Test Docker image
       run: |
-        # Start container
-        docker run -d --name test-container -p 3000:3000 deploy-agent:${{ github.sha }}
+        # Start container with auth environment
+        docker run -d --name test-container -p 3000:3000 \
+          -e JWT_SECRET="${{ env.JWT_SECRET }}" \
+          -e JWT_EXPIRES_IN="${{ env.JWT_EXPIRES_IN }}" \
+          deploy-agent:${{ github.sha }}
         
         # Wait for container to be ready
-        sleep 10
+        sleep 15
         
         # Test health endpoint
         curl -f http://localhost:3000/api/health
+        
+        # Test auth registration
+        curl -X POST http://localhost:3000/api/auth/register \
+          -H "Content-Type: application/json" \
+          -d '{"username":"dockertest","email":"docker@test.com","password":"dockerpass123"}'
         
         # Check container health
         docker ps --filter "name=test-container"
@@ -238,25 +366,29 @@ jobs:
   notify:
     name: Notify Results
     runs-on: ubuntu-latest
-    needs: [test, security, build, health-check]
+    needs: [test, auth-tests, security, build, health-check, auth-integration]
     if: always()
     
     steps:
     - name: Notify success
-      if: ${{ needs.test.result == 'success' && needs.security.result == 'success' && needs.build.result == 'success' && needs.health-check.result == 'success' }}
+      if: ${{ needs.test.result == 'success' && needs.auth-tests.result == 'success' && needs.security.result == 'success' && needs.build.result == 'success' && needs.health-check.result == 'success' && needs.auth-integration.result == 'success' }}
       run: |
         echo "✅ All CI checks passed successfully!"
         echo "- Tests: ${{ needs.test.result }}"
+        echo "- Auth Tests: ${{ needs.auth-tests.result }}"
         echo "- Security: ${{ needs.security.result }}"
         echo "- Build: ${{ needs.build.result }}"
         echo "- Health Check: ${{ needs.health-check.result }}"
+        echo "- Auth Integration: ${{ needs.auth-integration.result }}"
         
     - name: Notify failure
-      if: ${{ needs.test.result == 'failure' || needs.security.result == 'failure' || needs.build.result == 'failure' || needs.health-check.result == 'failure' }}
+      if: ${{ needs.test.result == 'failure' || needs.auth-tests.result == 'failure' || needs.security.result == 'failure' || needs.build.result == 'failure' || needs.health-check.result == 'failure' || needs.auth-integration.result == 'failure' }}
       run: |
         echo "❌ CI pipeline failed!"
         echo "- Tests: ${{ needs.test.result }}"
+        echo "- Auth Tests: ${{ needs.auth-tests.result }}"
         echo "- Security: ${{ needs.security.result }}"
         echo "- Build: ${{ needs.build.result }}"
         echo "- Health Check: ${{ needs.health-check.result }}"
+        echo "- Auth Integration: ${{ needs.auth-integration.result }}"
         exit 1
