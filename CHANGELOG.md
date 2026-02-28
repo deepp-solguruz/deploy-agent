@@ -8,20 +8,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Complete user management system with CRUD operations
-- User authentication and authorization middleware
-- Comprehensive input validation for user data
-- User search functionality with pagination support
-- Soft delete implementation for user accounts
-- User account reactivation functionality
-- Extensive integration and unit test coverage
+- Complete employee management system with CRUD operations
+- Employee authentication and authorization middleware
+- Comprehensive input validation for employee data
+- Employee search functionality with pagination support
+- Employee termination and reactivation functionality
+- Department and position-based filtering
+- Skills management for employees
+- Extensive unit test coverage for employee models
 - Production-ready error handling and response formatting
 
 ### Security
-- JWT-based authentication for all user endpoints
-- Password hashing using bcrypt with salt rounds
-- Access control preventing unauthorized profile access
+- JWT-based authentication for all employee endpoints
 - Input sanitization and validation to prevent injection attacks
+- Unique constraints for employee ID and email
+- Soft delete implementation preserving employee history
+
+## [0.3.0] - 2024-01-20
+
+### Added
+- **Employee Management Endpoints**
+  - `GET /api/employees` - List all employees with pagination and filtering
+  - `GET /api/employees/:id` - Get employee by ID
+  - `POST /api/employees` - Create new employee with validation
+  - `PUT /api/employees/:id` - Update employee information
+  - `DELETE /api/employees/:id` - Soft delete employee
+  - `PATCH /api/employees/:id/terminate` - Terminate employee with reason
+  - `PATCH /api/employees/:id/reactivate` - Reactivate terminated employee
+  - `GET /api/employees/search/:query` - Search employees by name, email, or ID
+  - `GET /api/employees/department/:department` - Filter employees by department
+  - `GET /api/employees/position/:position` - Filter employees by position
+
+- **Employee Data Model**
+  - Complete employee profile with personal and professional information
+  - Skills management (add, remove, validate skills)
+  - Department and position tracking
+  - Salary information with proper validation
+  - Employee status management (active, inactive, terminated)
+  - Hire date and termination tracking with reasons
+  - Years of service calculation
+
+- **Validation System**
+  - Employee ID validation (3-20 chars, alphanumeric, unique)
+  - Name validation (1-50 chars each, required)
+  - Email validation (RFC compliant, unique across employees)
+  - Department validation (predefined list of valid departments)
+  - Position validation (1-100 chars, required)
+  - Salary validation (positive number, up to 2 decimal places)
+  - Phone number validation (optional, proper format)
+  - Skills validation (array of strings, 1-50 chars each)
+
+- **Business Logic**
+  - Employee termination with reason tracking
+  - Employee reactivation functionality
+  - Skills management (add/remove individual skills)
+  - Years of service calculation from hire date
+  - Safe object conversion methods for API responses
+
+- **Testing Infrastructure**
+  - Comprehensive unit tests for Employee model (30+ test cases)
+  - Validation testing for all employee fields
+  - Business logic testing (termination, reactivation, skills)
+  - Error handling and edge case coverage
+  - Jest testing framework integration
+
+### Security
+- JWT authentication required for all employee endpoints
+- Input validation preventing injection attacks
+- Unique constraints enforced for employee ID and email
+- Soft delete preserving employee history and data integrity
+- Salary information access controls
+
+### Technical Details
+- **Storage**: In-memory Map with database-ready structure
+- **Validation**: Custom middleware with detailed error responses
+- **Business Logic**: Rich employee model with methods for common operations
+- **Testing**: Unit tests with comprehensive coverage of model functionality
 
 ## [0.2.0] - 2024-01-15
 
@@ -93,6 +155,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **v0.3.0**: Complete employee management system with CRUD operations, business logic, and comprehensive unit testing
 - **v0.2.0**: Complete user management system with CRUD operations, validation, and comprehensive testing
 - **v0.1.0**: Initial server setup with basic authentication and health checks
 

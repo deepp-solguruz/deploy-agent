@@ -1552,6 +1552,948 @@ curl -X GET "http://localhost:3000/api/inventory?search=wireless&category=electr
 - **status**: Must be valid status
 - **isActive**: Must be boolean
 
+### Employee Management Endpoints
+
+#### GET /api/employees
+Get all employees with filtering and pagination.
+
+**Query Parameters:**
+- `limit` (optional): Number of employees per page (default: 10)
+- `offset` (optional): Number of employees to skip (default: 0)
+- `department` (optional): Filter by department
+- `status` (optional): Filter by status (active, inactive, terminated)
+- `position` (optional): Filter by position
+- `managerId` (optional): Filter by manager ID
+- `includeTerminated` (optional): Include terminated employees (default: false)
+
+**Example:**
+```bash
+curl -X GET "http://localhost:3000/api/employees?department=Engineering&limit=20&offset=0" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Employees retrieved successfully",
+  "data": [
+    {
+      "id": "1701234567890",
+      "employeeId": "EMP-001",
+      "firstName": "John",
+      "lastName": "Doe",
+      "fullName": "John Doe",
+      "email": "john.doe@company.com",
+      "phone": "+1-555-0123",
+      "department": "Engineering",
+      "position": "Software Engineer",
+      "salary": 75000,
+      "hireDate": "2023-01-15T00:00:00.000Z",
+      "status": "active",
+      "managerId": "EMP-002",
+      "address": {
+        "street": "123 Main St",
+        "city": "San Francisco",
+        "state": "CA",
+        "zipCode": "94105"
+      },
+      "emergencyContact": {
+        "name": "Jane Doe",
+        "phone": "+1-555-0124",
+        "relationship": "Spouse"
+      },
+      "skills": ["JavaScript", "Node.js", "React"],
+      "notes": "Excellent team player",
+      "createdAt": "2023-12-07T10:30:00.000Z",
+      "updatedAt": "2023-12-07T11:00:00.000Z",
+      "terminatedAt": null
+    }
+  ],
+  "pagination": {
+    "total": 1,
+    "limit": 20,
+    "offset": 0,
+    "hasMore": false
+  }
+}
+```
+
+#### GET /api/employees/:id
+Get employee by ID.
+
+**Example:**
+```bash
+curl -X GET http://localhost:3000/api/employees/1701234567890 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Employee retrieved successfully",
+  "data": {
+    "id": "1701234567890",
+    "employeeId": "EMP-001",
+    "firstName": "John",
+    "lastName": "Doe",
+    "fullName": "John Doe",
+    "email": "john.doe@company.com",
+    "phone": "+1-555-0123",
+    "department": "Engineering",
+    "position": "Software Engineer",
+    "salary": 75000,
+    "hireDate": "2023-01-15T00:00:00.000Z",
+    "status": "active",
+    "managerId": "EMP-002",
+    "address": {
+      "street": "123 Main St",
+      "city": "San Francisco",
+      "state": "CA",
+      "zipCode": "94105"
+    },
+    "emergencyContact": {
+      "name": "Jane Doe",
+      "phone": "+1-555-0124",
+      "relationship": "Spouse"
+    },
+    "skills": ["JavaScript", "Node.js", "React"],
+    "notes": "Excellent team player",
+    "createdAt": "2023-12-07T10:30:00.000Z",
+    "updatedAt": "2023-12-07T11:00:00.000Z",
+    "terminatedAt": null
+  }
+}
+```
+
+#### POST /api/employees
+Create new employee.
+
+**Request Body:**
+```json
+{
+  "employeeId": "EMP-003",
+  "firstName": "Alice",
+  "lastName": "Smith",
+  "email": "alice.smith@company.com",
+  "phone": "+1-555-0125",
+  "department": "Marketing",
+  "position": "Marketing Manager",
+  "salary": 80000,
+  "hireDate": "2023-12-01T00:00:00.000Z",
+  "managerId": "EMP-004",
+  "address": {
+    "street": "456 Oak Ave",
+    "city": "San Francisco",
+    "state": "CA",
+    "zipCode": "94107"
+  },
+  "emergencyContact": {
+    "name": "Bob Smith",
+    "phone": "+1-555-0126",
+    "relationship": "Spouse"
+  },
+  "skills": ["Digital Marketing", "SEO", "Analytics"],
+  "notes": "Strong leadership skills"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/api/employees \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "employeeId": "EMP-003",
+    "firstName": "Alice",
+    "lastName": "Smith",
+    "email": "alice.smith@company.com",
+    "department": "Marketing",
+    "position": "Marketing Manager",
+    "salary": 80000,
+    "hireDate": "2023-12-01T00:00:00.000Z"
+  }'
+```
+
+**Response (201):**
+```json
+{
+  "message": "Employee created successfully",
+  "data": {
+    "id": "1701234567891",
+    "employeeId": "EMP-003",
+    "firstName": "Alice",
+    "lastName": "Smith",
+    "fullName": "Alice Smith",
+    "email": "alice.smith@company.com",
+    "department": "Marketing",
+    "position": "Marketing Manager",
+    "salary": 80000,
+    "hireDate": "2023-12-01T00:00:00.000Z",
+    "status": "active",
+    "createdAt": "2023-12-07T12:00:00.000Z"
+  }
+}
+```
+
+#### PUT /api/employees/:id
+Update employee information.
+
+**Request Body:**
+```json
+{
+  "firstName": "Alice",
+  "lastName": "Johnson",
+  "email": "alice.johnson@company.com",
+  "phone": "+1-555-0127",
+  "department": "Marketing",
+  "position": "Senior Marketing Manager",
+  "salary": 85000,
+  "skills": ["Digital Marketing", "SEO", "Analytics", "Team Leadership"]
+}
+```
+
+**Example:**
+```bash
+curl -X PUT http://localhost:3000/api/employees/1701234567891 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lastName": "Johnson",
+    "position": "Senior Marketing Manager",
+    "salary": 85000
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "message": "Employee updated successfully",
+  "data": {
+    "id": "1701234567891",
+    "employeeId": "EMP-003",
+    "firstName": "Alice",
+    "lastName": "Johnson",
+    "fullName": "Alice Johnson",
+    "email": "alice.smith@company.com",
+    "position": "Senior Marketing Manager",
+    "salary": 85000,
+    "updatedAt": "2023-12-07T12:30:00.000Z"
+  }
+}
+```
+
+#### DELETE /api/employees/:id
+Delete employee (hard delete).
+
+**Example:**
+```bash
+curl -X DELETE http://localhost:3000/api/employees/1701234567891 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Employee deleted successfully",
+  "data": {
+    "id": "1701234567891",
+    "employeeId": "EMP-003",
+    "firstName": "Alice",
+    "lastName": "Johnson",
+    "fullName": "Alice Johnson"
+  }
+}
+```
+
+#### PATCH /api/employees/:id/terminate
+Terminate employee with optional reason.
+
+**Request Body:**
+```json
+{
+  "reason": "End of contract"
+}
+```
+
+**Example:**
+```bash
+curl -X PATCH http://localhost:3000/api/employees/1701234567890/terminate \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{"reason": "End of contract"}'
+```
+
+**Response (200):**
+```json
+{
+  "message": "Employee terminated successfully",
+  "data": {
+    "id": "1701234567890",
+    "employeeId": "EMP-001",
+    "firstName": "John",
+    "lastName": "Doe",
+    "status": "terminated",
+    "terminatedAt": "2023-12-07T13:00:00.000Z",
+    "updatedAt": "2023-12-07T13:00:00.000Z"
+  }
+}
+```
+
+#### PATCH /api/employees/:id/reactivate
+Reactivate terminated employee.
+
+**Example:**
+```bash
+curl -X PATCH http://localhost:3000/api/employees/1701234567890/reactivate \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Employee reactivated successfully",
+  "data": {
+    "id": "1701234567890",
+    "employeeId": "EMP-001",
+    "firstName": "John",
+    "lastName": "Doe",
+    "status": "active",
+    "terminatedAt": null,
+    "updatedAt": "2023-12-07T13:15:00.000Z"
+  }
+}
+```
+
+#### GET /api/employees/search/:query
+Search employees by name, email, or employee ID.
+
+**Query Parameters:**
+- `limit` (optional): Number of results per page (default: 10)
+- `offset` (optional): Number of results to skip (default: 0)
+- `includeTerminated` (optional): Include terminated employees (default: false)
+
+**Example:**
+```bash
+curl -X GET "http://localhost:3000/api/employees/search/john?limit=5&offset=0" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Search completed successfully",
+  "data": [
+    {
+      "id": "1701234567890",
+      "employeeId": "EMP-001",
+      "firstName": "John",
+      "lastName": "Doe",
+      "fullName": "John Doe",
+      "email": "john.doe@company.com",
+      "department": "Engineering",
+      "position": "Software Engineer",
+      "status": "active"
+    }
+  ],
+  "pagination": {
+    "total": 1,
+    "limit": 5,
+    "offset": 0,
+    "hasMore": false
+  },
+  "query": "john"
+}
+```
+
+#### GET /api/employees/department/:department
+Get employees by department.
+
+**Query Parameters:**
+- `limit` (optional): Number of results per page (default: 10)
+- `offset` (optional): Number of results to skip (default: 0)
+- `includeTerminated` (optional): Include terminated employees (default: false)
+
+**Example:**
+```bash
+curl -X GET "http://localhost:3000/api/employees/department/Engineering?limit=10" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Employees retrieved successfully",
+  "data": [
+    {
+      "id": "1701234567890",
+      "employeeId": "EMP-001",
+      "firstName": "John",
+      "lastName": "Doe",
+      "department": "Engineering",
+      "position": "Software Engineer",
+      "status": "active"
+    }
+  ],
+  "department": "Engineering",
+  "pagination": {
+    "total": 1,
+    "limit": 10,
+    "offset": 0,
+    "hasMore": false
+  }
+}
+```
+
+#### GET /api/employees/manager/:managerId
+Get employees by manager ID.
+
+**Query Parameters:**
+- `limit` (optional): Number of results per page (default: 10)
+- `offset` (optional): Number of results to skip (default: 0)
+- `includeTerminated` (optional): Include terminated employees (default: false)
+
+**Example:**
+```bash
+curl -X GET "http://localhost:3000/api/employees/manager/EMP-002?limit=10" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Employees retrieved successfully",
+  "data": [
+    {
+      "id": "1701234567890",
+      "employeeId": "EMP-001",
+      "firstName": "John",
+      "lastName": "Doe",
+      "managerId": "EMP-002",
+      "department": "Engineering",
+      "position": "Software Engineer",
+      "status": "active"
+    }
+  ],
+  "managerId": "EMP-002",
+  "pagination": {
+    "total": 1,
+    "limit": 10,
+    "offset": 0,
+    "hasMore": false
+  }
+}
+```
+
+#### GET /api/employees/stats/overview
+Get employee statistics and overview.
+
+**Example:**
+```bash
+curl -X GET http://localhost:3000/api/employees/stats/overview \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Employee statistics retrieved successfully",
+  "data": {
+    "totalEmployees": 150,
+    "activeEmployees": 140,
+    "inactiveEmployees": 5,
+    "terminatedEmployees": 5,
+    "departmentBreakdown": {
+      "Engineering": 45,
+      "Marketing": 25,
+      "Sales": 30,
+      "HR": 15,
+      "Finance": 20,
+      "Operations": 15
+    },
+    "averageSalary": 72500,
+    "averageYearsOfService": 3.2
+  }
+}
+```
+
+#### GET /api/employees/meta/departments
+Get list of all departments.
+
+**Example:**
+```bash
+curl -X GET http://localhost:3000/api/employees/meta/departments \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Departments retrieved successfully",
+  "data": [
+    "Engineering",
+    "Marketing",
+    "Sales",
+    "HR",
+    "Finance",
+    "Operations"
+  ]
+}
+```
+
+#### GET /api/employees/meta/positions
+Get list of all positions.
+
+**Example:**
+```bash
+curl -X GET http://localhost:3000/api/employees/meta/positions \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Positions retrieved successfully",
+  "data": [
+    "Software Engineer",
+    "Senior Software Engineer",
+    "Marketing Manager",
+    "Sales Representative",
+    "HR Specialist",
+    "Financial Analyst",
+    "Operations Manager"
+  ]
+}
+```
+
+#### GET /api/employees/meta/skills
+Get list of all skills.
+
+**Example:**
+```bash
+curl -X GET http://localhost:3000/api/employees/meta/skills \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Skills retrieved successfully",
+  "data": [
+    "JavaScript",
+    "Node.js",
+    "React",
+    "Python",
+    "Digital Marketing",
+    "SEO",
+    "Analytics",
+    "Team Leadership",
+    "Project Management"
+  ]
+}
+```
+
+#### POST /api/employees/bulk
+Create multiple employees at once.
+
+**Request Body:**
+```json
+{
+  "employees": [
+    {
+      "employeeId": "EMP-004",
+      "firstName": "Bob",
+      "lastName": "Wilson",
+      "email": "bob.wilson@company.com",
+      "department": "Sales",
+      "position": "Sales Representative",
+      "hireDate": "2023-11-01T00:00:00.000Z"
+    },
+    {
+      "employeeId": "EMP-005",
+      "firstName": "Carol",
+      "lastName": "Davis",
+      "email": "carol.davis@company.com",
+      "department": "HR",
+      "position": "HR Specialist",
+      "hireDate": "2023-10-15T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/api/employees/bulk \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "employees": [
+      {
+        "employeeId": "EMP-004",
+        "firstName": "Bob",
+        "lastName": "Wilson",
+        "email": "bob.wilson@company.com",
+        "department": "Sales",
+        "position": "Sales Representative",
+        "hireDate": "2023-11-01T00:00:00.000Z"
+      }
+    ]
+  }'
+```
+
+**Response (201):**
+```json
+{
+  "message": "Bulk employee creation completed",
+  "data": {
+    "created": 1,
+    "failed": 0,
+    "total": 1,
+    "employees": [
+      {
+        "id": "1701234567892",
+        "employeeId": "EMP-004",
+        "firstName": "Bob",
+        "lastName": "Wilson",
+        "status": "created"
+      }
+    ],
+    "errors": []
+  }
+}
+```
+
+#### GET /api/employees/export/all
+Export all employees data.
+
+**Example:**
+```bash
+curl -X GET http://localhost:3000/api/employees/export/all \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Employees exported successfully",
+  "data": [
+    {
+      "id": "1701234567890",
+      "employeeId": "EMP-001",
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "john.doe@company.com",
+      "department": "Engineering",
+      "position": "Software Engineer",
+      "status": "active"
+    }
+  ],
+  "count": 1,
+  "exportedAt": "2023-12-07T14:00:00.000Z"
+}
+```
+
+#### POST /api/employees/import
+Import employees data.
+
+**Request Body:**
+```json
+{
+  "employees": [
+    {
+      "employeeId": "EMP-006",
+      "firstName": "David",
+      "lastName": "Brown",
+      "email": "david.brown@company.com",
+      "department": "Finance",
+      "position": "Financial Analyst",
+      "hireDate": "2023-09-01T00:00:00.000Z"
+    }
+  ],
+  "overwrite": false
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/api/employees/import \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "employees": [
+      {
+        "employeeId": "EMP-006",
+        "firstName": "David",
+        "lastName": "Brown",
+        "email": "david.brown@company.com",
+        "department": "Finance",
+        "position": "Financial Analyst",
+        "hireDate": "2023-09-01T00:00:00.000Z"
+      }
+    ],
+    "overwrite": false
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "message": "Employee import completed",
+  "data": {
+    "imported": 1,
+    "updated": 0,
+    "failed": 0,
+    "total": 1,
+    "results": [
+      {
+        "employeeId": "EMP-006",
+        "status": "imported",
+        "id": "1701234567893"
+      }
+    ],
+    "errors": []
+  }
+}
+```
+
+## Employee Management Flow
+
+### 1. Employee Creation & Setup
+```bash
+# Create new employee
+curl -X POST http://localhost:3000/api/employees \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "employeeId": "EMP-001",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@company.com",
+    "department": "Engineering",
+    "position": "Software Engineer",
+    "salary": 75000,
+    "hireDate": "2023-01-15T00:00:00.000Z"
+  }'
+
+# Get employee details
+curl -X GET http://localhost:3000/api/employees/EMPLOYEE_ID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+```
+
+### 2. Employee Information Management
+```bash
+# Update employee information
+curl -X PUT http://localhost:3000/api/employees/EMPLOYEE_ID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "position": "Senior Software Engineer",
+    "salary": 85000,
+    "skills": ["JavaScript", "Node.js", "React", "Team Leadership"]
+  }'
+
+# Search employees
+curl -X GET "http://localhost:3000/api/employees/search/john?limit=10" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+```
+
+### 3. Department & Team Management
+```bash
+# Get employees by department
+curl -X GET "http://localhost:3000/api/employees/department/Engineering?limit=20" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Get employees by manager
+curl -X GET "http://localhost:3000/api/employees/manager/EMP-002?limit=20" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Get department list
+curl -X GET http://localhost:3000/api/employees/meta/departments \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Get positions list
+curl -X GET http://localhost:3000/api/employees/meta/positions \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+```
+
+### 4. Employee Lifecycle Management
+```bash
+# Terminate employee
+curl -X PATCH http://localhost:3000/api/employees/EMPLOYEE_ID/terminate \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"reason": "End of contract"}'
+
+# Reactivate employee
+curl -X PATCH http://localhost:3000/api/employees/EMPLOYEE_ID/reactivate \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Delete employee (hard delete)
+curl -X DELETE http://localhost:3000/api/employees/EMPLOYEE_ID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+```
+
+### 5. Reporting & Analytics
+```bash
+# Get employee statistics
+curl -X GET http://localhost:3000/api/employees/stats/overview \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Filter employees by status
+curl -X GET "http://localhost:3000/api/employees?status=active&limit=50" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Include terminated employees in results
+curl -X GET "http://localhost:3000/api/employees?includeTerminated=true" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+```
+
+### 6. Bulk Operations
+```bash
+# Bulk create employees
+curl -X POST http://localhost:3000/api/employees/bulk \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "employees": [
+      {
+        "employeeId": "EMP-004",
+        "firstName": "Alice",
+        "lastName": "Smith",
+        "email": "alice.smith@company.com",
+        "department": "Marketing",
+        "position": "Marketing Manager",
+        "hireDate": "2023-12-01T00:00:00.000Z"
+      }
+    ]
+  }'
+
+# Export all employees
+curl -X GET http://localhost:3000/api/employees/export/all \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Import employees
+curl -X POST http://localhost:3000/api/employees/import \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "employees": [...],
+    "overwrite": false
+  }'
+```
+
+## Employee Data Schema
+
+### Employee Object
+```json
+{
+  "id": "string",                    // Unique system identifier (timestamp-based)
+  "employeeId": "string",            // Unique employee identifier (3-20 chars, alphanumeric + underscore/hyphen)
+  "firstName": "string",             // First name (1-50 chars, required)
+  "lastName": "string",              // Last name (1-50 chars, required)
+  "fullName": "string",              // Calculated: firstName + lastName
+  "email": "string",                 // Email address (valid email format, unique, required)
+  "phone": "string",                 // Phone number (optional, valid phone format)
+  "department": "string",            // Department name (1-100 chars, required)
+  "position": "string",              // Job position (1-100 chars, required)
+  "salary": "number",                // Annual salary (positive number, optional)
+  "hireDate": "string",              // ISO timestamp of hire date (required, cannot be future)
+  "status": "string",                // Employee status (active, inactive, terminated)
+  "managerId": "string",             // Manager's employee ID (optional)
+  "address": {                       // Address object (optional)
+    "street": "string",
+    "city": "string",
+    "state": "string",
+    "zipCode": "string"
+  },
+  "emergencyContact": {              // Emergency contact object (optional)
+    "name": "string",
+    "phone": "string",
+    "relationship": "string"
+  },
+  "skills": ["string"],              // Array of skills (optional)
+  "notes": "string",                 // Additional notes (optional)
+  "createdAt": "string",             // ISO timestamp of creation
+  "updatedAt": "string",             // ISO timestamp of last update (optional)
+  "terminatedAt": "string"           // ISO timestamp of termination (optional)
+}
+```
+
+### Employee Statistics Object
+```json
+{
+  "totalEmployees": "number",        // Total number of employees
+  "activeEmployees": "number",       // Number of active employees
+  "inactiveEmployees": "number",     // Number of inactive employees
+  "terminatedEmployees": "number",   // Number of terminated employees
+  "departmentBreakdown": {           // Employee count by department
+    "Engineering": "number",
+    "Marketing": "number",
+    "Sales": "number"
+  },
+  "averageSalary": "number",         // Average salary across all employees
+  "averageYearsOfService": "number"  // Average years of service
+}
+```
+
+### Bulk Operation Response
+```json
+{
+  "created": "number",               // Number of employees created
+  "updated": "number",               // Number of employees updated
+  "failed": "number",                // Number of failed operations
+  "total": "number",                 // Total number of operations attempted
+  "employees": [                     // Array of operation results
+    {
+      "employeeId": "string",
+      "status": "string",            // created, updated, failed
+      "id": "string",                // System ID (if successful)
+      "error": "string"              // Error message (if failed)
+    }
+  ],
+  "errors": ["string"]               // Array of error messages
+}
+```
+
+### Validation Rules
+
+#### Employee Creation
+- **employeeId**: Required, 3-20 characters, alphanumeric + underscore/hyphen, unique
+- **firstName**: Required, 1-50 characters
+- **lastName**: Required, 1-50 characters
+- **email**: Required, valid email format, unique
+- **phone**: Optional, valid phone number format
+- **department**: Required, 1-100 characters
+- **position**: Required, 1-100 characters
+- **salary**: Optional, positive number
+- **hireDate**: Required, valid date, cannot be in future
+- **status**: Optional, must be 'active', 'inactive', or 'terminated', default 'active'
+- **skills**: Optional, array of strings
+- **address**: Optional, object with string properties
+- **emergencyContact**: Optional, object with string properties
+
+#### Employee Update
+- **employeeId**: Cannot be changed after creation
+- **firstName**: Optional, 1-50 characters
+- **lastName**: Optional, 1-50 characters
+- **email**: Optional, valid email format, unique
+- **phone**: Optional, valid phone number format
+- **department**: Optional, 1-100 characters
+- **position**: Optional, 1-100 characters
+- **salary**: Optional, positive number
+- **status**: Optional, must be 'active', 'inactive', or 'terminated'
+- **skills**: Optional, array of strings
+- **address**: Optional, object with string properties
+- **emergencyContact**: Optional, object with string properties
+
+#### Search & Filtering
+- **query**: Minimum 2 characters for search
+- **limit**: 1-100, default 10
+- **offset**: Non-negative integer, default 0
+- **department**: Must match existing department
+- **status**: Must be 'active', 'inactive', or 'terminated'
+- **includeTerminated**: Boolean, default false
+
 ## License
 
 MIT License - see LICENSE file for details.
