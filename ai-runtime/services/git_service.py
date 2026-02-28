@@ -67,24 +67,40 @@ def git_create_branch_and_commit(repo_path: str, branch_name: str, commit_messag
     _run_git(repo_path, "config", "user.email", "ai@devswarm.local")
     _run_git(repo_path, "config", "user.name", "DevSwarm AI")
 
-    # Determine the base/default branch (main, master, etc.)
-    base_branch = "main"  # default fallback
+    # Determine the base/default branch — use the LATEST remote branch
+    base_branch = "main"  # ultimate fallback
 
-    # Try: git symbolic-ref refs/remotes/origin/HEAD
-    code, out = _run_git(repo_path, "symbolic-ref", "--short", "refs/remotes/origin/HEAD")
-    if code == 0 and out.strip():
-        base_branch = out.strip().replace("origin/", "")
+    # Fetch latest remote refs so we know all pushed branches
+    github_token = os.getenv("GITHUB_TOKEN", "").strip()
+    remote = _get_remote_info(repo_path)
+    if remote and github_token:
+        owner, repo_name = remote
+        auth_url = f"https://x-access-token:{github_token}@github.com/{owner}/{repo_name}.git"
+        _run_git(repo_path, "fetch", auth_url, "--prune")
     else:
-        # Try common branch names
-        for candidate in ("main", "master", "develop"):
-            c, _ = _run_git(repo_path, "rev-parse", "--verify", candidate)
-            if c == 0:
-                base_branch = candidate
-                break
+        _run_git(repo_path, "fetch", "--prune")
 
-    logger.info(f"Base branch detected: {base_branch}")
+    # List remote branches sorted by most recent commit date
+    code, out = _run_git(
+        repo_path, "for-each-ref",
+        "--sort=-committerdate",
+        "--format=%(refname:short)",
+        "refs/remotes/origin/"
+    )
+    if code == 0 and out.strip():
+        remote_branches = [
+            b.replace("origin/", "")
+            for b in out.strip().split("\n")
+            if b.strip() and "HEAD" not in b
+        ]
+        if remote_branches:
+            # Use the most recently pushed branch as base
+            base_branch = remote_branches[0]
+            logger.info(f"Remote branches (newest first): {remote_branches[:5]}")
 
-    # Switch to base branch before creating feature branch
+    logger.info(f"Base branch for PR: {base_branch}")
+
+    # Switch to base branch before creating feature branch (so they share history)
     _run_git(repo_path, "checkout", base_branch)
 
     # Create and switch to the new feature branch
@@ -126,11 +142,7 @@ def git_push(repo_path: str, branch_name: str, base_branch: str = "main") -> dic
     # Push directly to authenticated URL (bypasses all credential helpers)
     auth_url = f"https://x-access-token:{github_token}@github.com/{owner}/{repo}.git"
 
-    # First ensure the base branch exists on the remote
-    logger.info(f"Pushing base branch '{base_branch}' to origin first...")
-    _run_git(repo_path, "push", auth_url, base_branch)
-
-    # Then push the feature branch
+    # Push the feature branch
     code, out = _run_git(repo_path, "push", "--set-upstream", auth_url, branch_name)
 
     logger.info(f"git_push result: code={code}, output={out[:200]}")
