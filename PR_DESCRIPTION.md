@@ -1,110 +1,167 @@
-# Create a starter Express server with a health check endpoint
+# Build Auth Endpoints and Flow
 
 ## Summary
 
-This PR introduces a production-ready Express.js server with comprehensive health check endpoints for the deploy-agent service. The implementation follows best practices for observability, security, and maintainability.
+This PR implements a comprehensive JWT-based authentication system for the deploy-agent service. The implementation includes complete user registration, login, profile management, and security features with extensive testing coverage.
 
 ## Changes Made
 
-### Core Server Implementation
-- **Express Server Setup** (`src/server.js`)
-  - Production-ready Express.js server with security middleware
-  - Helmet for security headers
-  - CORS support for cross-origin requests
-  - Morgan for HTTP request logging
-  - Comprehensive error handling and 404 middleware
-  - Graceful server startup with informative logging
+### Authentication System
+- **JWT Authentication Middleware** (`src/middleware/auth.js`)
+  - Token generation with configurable expiration
+  - Token verification and validation
+  - Authentication guard middleware for protected routes
+  - Secure JWT secret handling via environment variables
 
-### Health Check Endpoints
-- **Health Routes** (`src/routes/health.js`)
-  - `GET /api/health` - Basic health check with system metrics
-  - `GET /api/health/detailed` - Comprehensive system information
-  - `GET /api/health/ready` - Readiness probe for orchestration
-  - `GET /api/health/live` - Liveness probe for container health
+- **Complete Auth Routes** (`src/routes/auth.js`)
+  - `POST /api/auth/register` - User registration with validation
+  - `POST /api/auth/login` - User authentication and token generation
+  - `GET /api/auth/profile` - Get current user profile (protected)
+  - `PUT /api/auth/profile` - Update user profile (protected)
+  - `PUT /api/auth/change-password` - Change user password (protected)
+  - `POST /api/auth/logout` - User logout endpoint
+  - `POST /api/auth/refresh` - Token refresh endpoint (protected)
 
-### Package Configuration
-- **Dependencies** (`package.json`)
-  - Express.js ^4.18.2 for web framework
-  - Security middleware: helmet, cors
-  - Logging: morgan
-  - Development tools: nodemon for hot reload
+- **Input Validation** (`src/validators/auth.js`)
+  - Registration validation (username, email, password strength)
+  - Login validation with sanitization
+  - Email format validation and uniqueness checks
+  - Password strength requirements (minimum 6 characters)
 
-### Testing Infrastructure
-- **Jest Configuration** (`jest.config.js`)
-  - Node.js test environment
-  - Coverage reporting enabled
-  - Test file patterns configured
+### Security Features
+- **Password Security**
+  - Bcrypt hashing with salt rounds (10)
+  - Password strength validation
+  - Secure password change flow with current password verification
 
-- **Comprehensive Test Suite**
-  - Unit tests for health route handlers
-  - Integration tests for server endpoints
-  - Supertest for HTTP endpoint testing
-  - 100% test coverage for critical paths
+- **JWT Security**
+  - Configurable token expiration (default: 24h)
+  - Secure token generation and verification
+  - Environment-based JWT secret configuration
+  - Token refresh mechanism for extended sessions
 
-### Documentation
-- **README.md** - Complete setup and usage documentation
-- **Environment Configuration** (`.env.example`)
-- **Git Configuration** (`.gitignore`)
+- **User Management**
+  - In-memory user store (production-ready for database integration)
+  - User activation/deactivation support
+  - Duplicate username/email prevention
+  - Profile update capabilities
+
+### Package Dependencies
+- **bcrypt ^5.1.1** - Password hashing and verification
+- **jsonwebtoken ^9.0.2** - JWT token generation and verification
+
+### Server Integration
+- **Route Registration** (`src/server.js`)
+  - Auth routes mounted at `/api/auth`
+  - Integrated with existing Express server setup
+
+### Environment Configuration
+- **JWT Configuration** (`.env.example`)
+  - `JWT_SECRET` - Secret key for JWT signing
+  - `JWT_EXPIRES_IN` - Token expiration time (default: 24h)
+
+### Comprehensive Testing
+- **Unit Tests** (`tests/unit/middleware/auth.test.js`)
+  - Token generation and verification tests
+  - Authentication middleware testing
+  - Error handling validation
+
+- **Integration Tests** (`tests/integration/auth.test.js`)
+  - Complete auth flow testing (register → login → profile)
+  - Password change workflow testing
+  - Token refresh mechanism testing
+  - Error scenario validation
+  - Security boundary testing
 
 ## API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Root endpoint with service info |
-| `/api/health` | GET | Basic health check with metrics |
-| `/api/health/detailed` | GET | Detailed system information |
-| `/api/health/ready` | GET | Readiness probe |
-| `/api/health/live` | GET | Liveness probe |
+| Endpoint | Method | Auth Required | Description |
+|----------|--------|---------------|-------------|
+| `/api/auth/register` | POST | No | User registration |
+| `/api/auth/login` | POST | No | User authentication |
+| `/api/auth/profile` | GET | Yes | Get user profile |
+| `/api/auth/profile` | PUT | Yes | Update user profile |
+| `/api/auth/change-password` | PUT | Yes | Change password |
+| `/api/auth/logout` | POST | Yes | User logout |
+| `/api/auth/refresh` | POST | Yes | Refresh JWT token |
 
-## Health Check Features
+## Authentication Flow
 
-- **System Metrics**: Memory usage, CPU usage, uptime
-- **Service Information**: Version, environment, platform details
-- **Kubernetes Ready**: Separate readiness and liveness probes
-- **Production Monitoring**: Structured JSON responses with timestamps
+1. **Registration**: User creates account with username, email, password
+2. **Login**: User authenticates and receives JWT token
+3. **Protected Access**: Token required for profile and password operations
+4. **Token Refresh**: Extend session without re-authentication
+5. **Logout**: Client-side token removal
 
-## Security Features
+## Security Considerations
 
-- Helmet.js for security headers
-- CORS configuration
+- Passwords hashed with bcrypt (10 salt rounds)
+- JWT tokens with configurable expiration
 - Input validation and sanitization
-- Error handling without information leakage
+- Duplicate user prevention
+- Account activation status checking
+- Secure error messages (no information leakage)
 
-## Development Experience
+## Testing Coverage
 
-- Hot reload with nodemon
-- Comprehensive test suite with Jest
-- Environment-based configuration
-- Clear logging and error messages
-
-## Testing
-
-```bash
-npm test                 # Run all tests
-npm run test:coverage    # Run tests with coverage
-npm run dev             # Start development server
-npm start               # Start production server
-```
+- **Unit Tests**: Authentication middleware and token operations
+- **Integration Tests**: Complete auth workflows and error scenarios
+- **Security Tests**: Invalid token handling, password validation
+- **Edge Cases**: Duplicate users, inactive accounts, malformed requests
 
 ## Breaking Changes
 
-None - This is a new implementation.
+None - This is a new feature addition.
 
 ## Migration Guide
 
-This is the initial implementation. To use:
+### Environment Setup
+1. Add JWT configuration to `.env`:
+   ```
+   JWT_SECRET=your-super-secret-jwt-key-here
+   JWT_EXPIRES_IN=24h
+   ```
 
-1. Install dependencies: `npm install`
-2. Start development server: `npm run dev`
-3. Access health check: `http://localhost:3000/api/health`
+### Usage Examples
+```javascript
+// Register new user
+POST /api/auth/register
+{
+  "username": "john_doe",
+  "email": "john@example.com",
+  "password": "securepassword123"
+}
+
+// Login user
+POST /api/auth/login
+{
+  "username": "john_doe",
+  "password": "securepassword123"
+}
+
+// Access protected route
+GET /api/auth/profile
+Authorization: Bearer <jwt-token>
+```
+
+## Production Considerations
+
+- Replace in-memory user store with database (MongoDB, PostgreSQL)
+- Implement token blacklisting for logout
+- Add rate limiting for auth endpoints
+- Configure secure JWT secrets in production
+- Implement password reset functionality
+- Add email verification for registration
 
 ## Checklist
 
-- [x] Express server with security middleware
-- [x] Health check endpoints implemented
+- [x] JWT authentication middleware implemented
+- [x] Complete auth endpoints (register, login, profile, etc.)
+- [x] Input validation and sanitization
+- [x] Password hashing with bcrypt
 - [x] Comprehensive test suite
-- [x] Documentation updated
 - [x] Environment configuration
-- [x] Error handling implemented
-- [x] Logging configured
-- [x] Production-ready configuration
+- [x] Security best practices
+- [x] Error handling and logging
+- [x] Documentation updated
+- [x] Integration with existing server
