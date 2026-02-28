@@ -92,7 +92,8 @@ def run_deploy_agent(code_summary: str, test_summary: str, docs_summary: str,
         else:
             # Step 2: Push to GitHub
             logger.info(f"[DEPLOY] Pushing {branch_name} to origin")
-            push_result = git_push(repo_path, branch_name)
+            base = commit_result.get("base_branch", "main")
+            push_result = git_push(repo_path, branch_name, base_branch=base)
             logger.info(f"[DEPLOY] Push result: {push_result}")
 
             if push_result["success"]:

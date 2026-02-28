@@ -108,12 +108,12 @@ def git_create_branch_and_commit(repo_path: str, branch_name: str, commit_messag
     }
 
 
-def git_push(repo_path: str, branch_name: str) -> dict:
+def git_push(repo_path: str, branch_name: str, base_branch: str = "main") -> dict:
     """Push the branch to origin using GITHUB_TOKEN for auth."""
     github_token = os.getenv("GITHUB_TOKEN", "").strip()
     remote = _get_remote_info(repo_path)
 
-    logger.info(f"git_push: branch={branch_name}, remote={remote}, token_len={len(github_token)}")
+    logger.info(f"git_push: branch={branch_name}, base={base_branch}, remote={remote}, token_len={len(github_token)}")
 
     if not remote:
         return {"success": False, "output": "No GitHub remote 'origin' found."}
@@ -125,6 +125,12 @@ def git_push(repo_path: str, branch_name: str) -> dict:
 
     # Push directly to authenticated URL (bypasses all credential helpers)
     auth_url = f"https://x-access-token:{github_token}@github.com/{owner}/{repo}.git"
+
+    # First ensure the base branch exists on the remote
+    logger.info(f"Pushing base branch '{base_branch}' to origin first...")
+    _run_git(repo_path, "push", auth_url, base_branch)
+
+    # Then push the feature branch
     code, out = _run_git(repo_path, "push", "--set-upstream", auth_url, branch_name)
 
     logger.info(f"git_push result: code={code}, output={out[:200]}")
