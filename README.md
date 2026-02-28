@@ -376,36 +376,300 @@ curl -X POST http://localhost:3000/api/auth/refresh \
 }
 ```
 
-## Authentication Flow
+### User Management Endpoints
 
-### 1. User Registration
+#### GET /api/users
+Get all users (requires authentication).
+
+**Example:**
+```bash
+curl -X GET http://localhost:3000/api/users \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Users retrieved successfully",
+  "users": [
+    {
+      "id": "1701234567890",
+      "username": "johndoe",
+      "email": "john@example.com",
+      "createdAt": "2023-12-07T10:30:00.000Z",
+      "updatedAt": "2023-12-07T11:00:00.000Z",
+      "isActive": true
+    }
+  ],
+  "total": 1
+}
+```
+
+#### GET /api/users/:id
+Get user by ID (requires authentication, users can only view their own profile).
+
+**Example:**
+```bash
+curl -X GET http://localhost:3000/api/users/1701234567890 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "User retrieved successfully",
+  "user": {
+    "id": "1701234567890",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "createdAt": "2023-12-07T10:30:00.000Z",
+    "updatedAt": "2023-12-07T11:00:00.000Z",
+    "isActive": true
+  }
+}
+```
+
+#### POST /api/users
+Create new user (requires authentication).
+
+**Request Body:**
+```json
+{
+  "username": "newuser",
+  "email": "newuser@example.com",
+  "password": "securepassword123",
+  "isActive": true
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/api/users \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "newuser",
+    "email": "newuser@example.com",
+    "password": "securepassword123",
+    "isActive": true
+  }'
+```
+
+**Response (201):**
+```json
+{
+  "message": "User created successfully",
+  "user": {
+    "id": "1701234567891",
+    "username": "newuser",
+    "email": "newuser@example.com",
+    "createdAt": "2023-12-07T12:00:00.000Z",
+    "isActive": true
+  }
+}
+```
+
+#### PUT /api/users/:id
+Update user (requires authentication, users can only update their own profile).
+
+**Request Body:**
+```json
+{
+  "email": "updated@example.com",
+  "isActive": false
+}
+```
+
+**Example:**
+```bash
+curl -X PUT http://localhost:3000/api/users/1701234567890 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "updated@example.com",
+    "isActive": false
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "message": "User updated successfully",
+  "user": {
+    "id": "1701234567890",
+    "username": "johndoe",
+    "email": "updated@example.com",
+    "createdAt": "2023-12-07T10:30:00.000Z",
+    "updatedAt": "2023-12-07T12:30:00.000Z",
+    "isActive": false
+  }
+}
+```
+
+#### DELETE /api/users/:id
+Soft delete user (deactivate) - requires authentication, users can only delete their own account.
+
+**Example:**
+```bash
+curl -X DELETE http://localhost:3000/api/users/1701234567890 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "User deactivated successfully",
+  "user": {
+    "id": "1701234567890",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "isActive": false,
+    "deletedAt": "2023-12-07T13:00:00.000Z"
+  }
+}
+```
+
+#### PATCH /api/users/:id/activate
+Reactivate user account (requires authentication, users can reactivate their own account).
+
+**Example:**
+```bash
+curl -X PATCH http://localhost:3000/api/users/1701234567890/activate \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "User reactivated successfully",
+  "user": {
+    "id": "1701234567890",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "isActive": true,
+    "updatedAt": "2023-12-07T13:30:00.000Z"
+  }
+}
+```
+
+#### GET /api/users/search/:query
+Search users by username or email (requires authentication).
+
+**Query Parameters:**
+- `limit` (optional): Number of results to return (default: 10)
+- `offset` (optional): Number of results to skip (default: 0)
+
+**Example:**
+```bash
+curl -X GET "http://localhost:3000/api/users/search/john?limit=5&offset=0" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response (200):**
+```json
+{
+  "message": "Search completed successfully",
+  "users": [
+    {
+      "id": "1701234567890",
+      "username": "johndoe",
+      "email": "john@example.com",
+      "createdAt": "2023-12-07T10:30:00.000Z",
+      "isActive": true
+    }
+  ],
+  "query": "john",
+  "total": 1
+}
+```
+
+## User Management Flow
+
+### 1. User Registration & Authentication
 ```bash
 # Register new user
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username": "user", "email": "user@example.com", "password": "password123"}'
-```
 
-### 2. User Login
-```bash
 # Login and get token
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "user", "password": "password123"}'
 ```
 
-### 3. Access Protected Routes
+### 2. User Profile Management
 ```bash
-# Use token in Authorization header
+# View own profile
 curl -X GET http://localhost:3000/api/auth/profile \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Update profile
+curl -X PUT http://localhost:3000/api/auth/profile \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "newemail@example.com"}'
+
+# Change password
+curl -X PUT http://localhost:3000/api/auth/change-password \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"currentPassword": "old", "newPassword": "new"}'
+```
+
+### 3. User Management Operations
+```bash
+# List all users
+curl -X GET http://localhost:3000/api/users \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Get specific user
+curl -X GET http://localhost:3000/api/users/USER_ID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Create new user
+curl -X POST http://localhost:3000/api/users \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "newuser", "email": "new@example.com", "password": "pass123"}'
+
+# Update user
+curl -X PUT http://localhost:3000/api/users/USER_ID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "updated@example.com"}'
+
+# Search users
+curl -X GET "http://localhost:3000/api/users/search/john?limit=10" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
 ```
 
-### 4. Token Management
+### 4. Account Lifecycle Management
+```bash
+# Deactivate user account (soft delete)
+curl -X DELETE http://localhost:3000/api/users/USER_ID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Reactivate user account
+curl -X PATCH http://localhost:3000/api/users/USER_ID/activate \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Logout
+curl -X POST http://localhost:3000/api/auth/logout \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+```
+
+### 5. Token Management
 - Tokens expire in 24 hours by default
 - Use `/api/auth/refresh` to get a new token
 - Store tokens securely on the client side
 - Remove tokens on logout
+
+### 6. Access Control
+- Users can only view/edit their own profiles
+- User creation requires authentication
+- Search functionality available to authenticated users
+- Soft delete preserves data integrity
 
 ## Environment Configuration
 
@@ -443,13 +707,14 @@ npm run test:coverage
 ### User Object
 ```json
 {
-  "id": "string",           // Unique user identifier
-  "username": "string",     // Unique username
-  "email": "string",        // User email address
-  "password": "string",     // Hashed password (bcrypt)
-  "createdAt": "string",    // ISO timestamp
-  "updatedAt": "string",    // ISO timestamp (optional)
-  "isActive": "boolean"     // Account status
+  "id": "string",           // Unique user identifier (timestamp-based)
+  "username": "string",     // Unique username (3-30 chars, alphanumeric + underscore)
+  "email": "string",        // User email address (valid email format)
+  "password": "string",     // Hashed password (bcrypt, min 6 chars)
+  "createdAt": "string",    // ISO timestamp of creation
+  "updatedAt": "string",    // ISO timestamp of last update (optional)
+  "deletedAt": "string",    // ISO timestamp of soft deletion (optional)
+  "isActive": "boolean"     // Account status (true/false)
 }
 ```
 
@@ -464,31 +729,85 @@ npm run test:coverage
 }
 ```
 
+### API Response Formats
+
+#### Success Response
+```json
+{
+  "message": "string",      // Success message
+  "user": {},              // User object (when applicable)
+  "users": [],             // Array of users (for list endpoints)
+  "total": "number",       // Total count (for list endpoints)
+  "token": "string"        // JWT token (for auth endpoints)
+}
+```
+
+#### Error Response
+```json
+{
+  "error": "string",        // Error type/title
+  "message": "string",      // Detailed error message
+  "details": []            // Validation errors (when applicable)
+}
+```
+
+### Validation Rules
+
+#### User Creation/Registration
+- **username**: Required, 3-30 characters, alphanumeric + underscore, unique
+- **email**: Required, valid email format, unique
+- **password**: Required, minimum 6 characters
+- **isActive**: Optional boolean, defaults to true
+
+#### User Update
+- **email**: Optional, valid email format, unique
+- **isActive**: Optional boolean
+- **username**: Cannot be changed after creation
+
+#### Search Parameters
+- **query**: Minimum 2 characters
+- **limit**: Optional, default 10, maximum 100
+- **offset**: Optional, default 0
+
 ## Project Structure
 
 ```
 deploy-agent/
 ├── src/
-│   ├── server.js              # Main server file
+│   ├── server.js                    # Main server file
 │   ├── middleware/
-│   │   └── auth.js           # JWT authentication middleware
+│   │   └── auth.js                 # JWT authentication middleware
 │   ├── routes/
-│   │   ├── health.js         # Health check routes
-│   │   └── auth.js           # Authentication routes
-│   └── validators/
-│       └── auth.js           # Input validation for auth
+│   │   ├── health.js               # Health check routes
+│   │   ├── auth.js                 # Authentication routes
+│   │   └── users.js                # User management routes
+│   ├── validators/
+│   │   ├── auth.js                 # Auth input validation
+│   │   └── users.js                # User input validation
+│   ├── models/
+│   │   └── User.js                 # User data model
+│   └── services/
+│       └── UserService.js          # User business logic
 ├── tests/
-│   ├── setup.js              # Test configuration
+│   ├── setup.js                    # Test configuration
 │   ├── unit/
-│   │   └── middleware/
-│   │       └── auth.test.js  # Auth middleware tests
+│   │   ├── middleware/
+│   │   │   └── auth.test.js        # Auth middleware tests
+│   │   ├── validators/
+│   │   │   └── users.test.js       # User validation tests
+│   │   └── services/
+│   │       └── UserService.test.js # User service tests
 │   └── integration/
-│       └── auth.test.js      # Auth endpoint tests
-├── package.json              # Dependencies and scripts
-├── jest.config.js            # Jest configuration
-├── .env.example             # Environment template
-├── .gitignore               # Git ignore rules
-└── README.md                # This file
+│       ├── auth.test.js            # Auth endpoint tests
+│       ├── users.test.js           # User endpoint tests
+│       └── server.test.js          # Server integration tests
+├── package.json                    # Dependencies and scripts
+├── jest.config.js                  # Jest configuration
+├── .env.example                    # Environment template
+├── .gitignore                      # Git ignore rules
+├── CHANGELOG.md                    # Version history
+├── PR_DESCRIPTION.md               # Pull request template
+└── README.md                       # This file
 ```
 
 ## Middleware Stack

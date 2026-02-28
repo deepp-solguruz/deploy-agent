@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const healthRoutes = require('./routes/health');
 const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // Default route
 app.get('/', (req, res) => {
