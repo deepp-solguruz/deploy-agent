@@ -67,15 +67,31 @@ def git_create_branch_and_commit(repo_path: str, branch_name: str, commit_messag
     _run_git(repo_path, "config", "user.email", "ai@devswarm.local")
     _run_git(repo_path, "config", "user.name", "DevSwarm AI")
 
-    # Get current branch as base
-    _, current = _run_git(repo_path, "rev-parse", "--abbrev-ref", "HEAD")
-    base_branch = current.strip() if current.strip() else "main"
+    # Determine the base/default branch (main, master, etc.)
+    base_branch = "main"  # default fallback
 
-    # Create and switch to new branch
+    # Try: git symbolic-ref refs/remotes/origin/HEAD
+    code, out = _run_git(repo_path, "symbolic-ref", "--short", "refs/remotes/origin/HEAD")
+    if code == 0 and out.strip():
+        base_branch = out.strip().replace("origin/", "")
+    else:
+        # Try common branch names
+        for candidate in ("main", "master", "develop"):
+            c, _ = _run_git(repo_path, "rev-parse", "--verify", candidate)
+            if c == 0:
+                base_branch = candidate
+                break
+
+    logger.info(f"Base branch detected: {base_branch}")
+
+    # Switch to base branch before creating feature branch
+    _run_git(repo_path, "checkout", base_branch)
+
+    # Create and switch to the new feature branch
     code, out = _run_git(repo_path, "checkout", "-b", branch_name)
     if code != 0:
         code, out = _run_git(repo_path, "checkout", branch_name)
-    results.append(f"Branch: {branch_name}")
+    results.append(f"Branch: {branch_name} (from {base_branch})")
 
     # Stage all changes
     _run_git(repo_path, "add", "-A")
